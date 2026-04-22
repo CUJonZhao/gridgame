@@ -1,4 +1,6 @@
 audio_test
+usb_test
+game_logic_test
 *.o
 *.out
 *.ko

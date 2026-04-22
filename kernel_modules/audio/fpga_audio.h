@@ -1,0 +1,17 @@
+#ifndef FPGA_AUDIO_H
+#define FPGA_AUDIO_H
+
+#define FPGA_AUDIO_DEVICE_NAME "fpga_audio"
+
+#define FPGA_AUDIO_BASE              0xFF202000
+#define FPGA_AUDIO_SPAN              0x10
+#define FPGA_AUDIO_SOUND_REG_OFFSET  0x00
+#define FPGA_AUDIO_SOUND_MASK        0x0F
+
+#define FPGA_AUDIO_SOUND_NONE         0
+#define FPGA_AUDIO_SOUND_EXPLOSION    1
+#define FPGA_AUDIO_SOUND_PLAYER_DIES  2
+#define FPGA_AUDIO_SOUND_VICTORY      3
+#define FPGA_AUDIO_SOUND_WALL_BREAKS  4
+
+#endif
