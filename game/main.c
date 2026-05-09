@@ -1,25 +1,27 @@
 /*
  * gridbrawl main loop.
  *
- * Glues together the three subsystems:
- *   - usbcontroller : reads the two HID gamepads (background poll thread)
- *   - game_logic    : pure-C state machine, advanced once per game tick
- *   - audio_interface: writes sound IDs to /dev/fpga_audio
+ * Glues together the four subsystems:
+ *   - usbcontroller   : reads the two HID gamepads (background poll thread)
+ *   - game_logic      : pure-C state machine, advanced once per game tick
+ *   - audio_interface : writes sound IDs to /dev/fpga_audio
+ *   - render          : pushes tile RAM + sprite registers to /dev/fpga_video
  *
  * The loop runs at GAME_TICK_HZ (defined in game.h) using absolute-time
  * scheduling on CLOCK_MONOTONIC so we don't drift.  Signals are handled
  * cleanly so the device files and the libusb context get released.
  *
- * Rendering is intentionally NOT done here yet -- once the FPGA video
- * kernel module lands, this file will gain a render_frame() call after
- * game_step().  Until then, set GRIDBRAWL_DEBUG=1 to print player
- * positions and scores roughly once per second, so we can sanity-check
- * input -> logic plumbing without a display.
+ * Set GRIDBRAWL_DEBUG=1 to print player positions and scores roughly
+ * once per second.  GRIDBRAWL_NO_AUDIO / NO_USB / NO_VIDEO short-circuit
+ * the matching subsystems so we can iterate on the loop without the
+ * full DE1-SoC stack in place.
  */
 
 #include "game.h"
 #include "usbcontroller.h"
 #include "audio_interface.h"
+#include "video_interface.h"
+#include "render.h"
 
 #include <errno.h>
 #include <signal.h>
@@ -45,9 +47,6 @@ static void install_signal_handlers(void)
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = on_signal;
     sigemptyset(&sa.sa_mask);
-
-    /* Restart syscalls is fine for our use; libusb / nanosleep are
-     * happy to be retried.  We just want g_running to flip. */
     sa.sa_flags = SA_RESTART;
     sigaction(SIGINT,  &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
@@ -84,7 +83,6 @@ static void debug_dump(const game_state_t *g, unsigned tick)
     if (!enabled) {
         return;
     }
-    /* Throttle to ~1 Hz so we don't spam the console. */
     if (tick - last_tick < (unsigned)GAME_TICK_HZ) {
         return;
     }
@@ -109,8 +107,10 @@ int main(int argc, char **argv)
     unsigned              tick = 0;
     int                   usb_opened;
     int                   audio_ok;
+    int                   video_ok;
     int                   skip_audio;
     int                   skip_usb;
+    int                   skip_video;
 
     (void)argc;
     (void)argv;
@@ -119,6 +119,7 @@ int main(int argc, char **argv)
 
     skip_audio = (getenv("GRIDBRAWL_NO_AUDIO") != NULL);
     skip_usb   = (getenv("GRIDBRAWL_NO_USB")   != NULL);
+    skip_video = (getenv("GRIDBRAWL_NO_VIDEO") != NULL);
 
     if (!skip_audio) {
         audio_ok = (audio_interface_init() == 0);
@@ -128,6 +129,16 @@ int main(int argc, char **argv)
         }
     } else {
         audio_ok = 0;
+    }
+
+    if (!skip_video) {
+        video_ok = (video_interface_init() == 0);
+        if (!video_ok) {
+            fprintf(stderr,
+                    "main: video_interface_init failed (continuing without rendering)\n");
+        }
+    } else {
+        video_ok = 0;
     }
 
     if (!skip_usb) {
@@ -148,15 +159,13 @@ int main(int argc, char **argv)
     }
 
     game_init(&game);
+    render_init();
 
     if (clock_gettime(CLOCK_MONOTONIC, &next_tick) != 0) {
         fprintf(stderr, "main: clock_gettime failed: %s\n", strerror(errno));
-        if (audio_ok) {
-            audio_interface_close();
-        }
-        if (!skip_usb) {
-            usbcontroller_close();
-        }
+        if (audio_ok) audio_interface_close();
+        if (video_ok) video_interface_close();
+        if (!skip_usb) usbcontroller_close();
         return 1;
     }
 
@@ -167,6 +176,8 @@ int main(int argc, char **argv)
         }
 
         game_step(&game, inputs);
+
+        render_frame(&game);
 
         if (audio_ok) {
             emit_sound(game.pending_sound_1);
@@ -193,11 +204,8 @@ int main(int argc, char **argv)
 
     fprintf(stderr, "main: shutting down\n");
 
-    if (!skip_usb) {
-        usbcontroller_close();
-    }
-    if (audio_ok) {
-        audio_interface_close();
-    }
+    if (!skip_usb) usbcontroller_close();
+    if (audio_ok)  audio_interface_close();
+    if (video_ok)  video_interface_close();
     return 0;
 }

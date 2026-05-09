@@ -1,0 +1,105 @@
+# =============================================================================
+# de1_soc_gridbrawl.qsf -- pin assignments for the GridBrawl top-level on
+# the Terasic DE1-SoC (Cyclone V 5CSEMA5F31C6).
+#
+# Merge this snippet into your project's main .qsf or use
+#   set_global_assignment -name SOURCE_TCL_SCRIPT_FILE de1_soc_gridbrawl.qsf
+# from a Quartus Tcl console. Only the GridBrawl-specific pads are listed
+# here -- HPS pins come from the Terasic golden top reference.
+#
+# Pin numbers below are taken from the DE1-SoC User Manual rev 1.2
+# (Cyclone V FPGA package F896, 5CSEMA5F31C6).
+# =============================================================================
+
+# ---- Device ----------------------------------------------------------------
+set_global_assignment -name FAMILY                  "Cyclone V"
+set_global_assignment -name DEVICE                  5CSEMA5F31C6
+
+# ---- Top entity ------------------------------------------------------------
+set_global_assignment -name TOP_LEVEL_ENTITY        de1_soc_top
+
+# ---- Source files ----------------------------------------------------------
+set_global_assignment -name SYSTEMVERILOG_FILE      de1_soc_top.sv
+set_global_assignment -name SDC_FILE                de1_soc_gridbrawl.sdc
+
+# Add the Qsys-generated wrapper after running Platform Designer:
+# set_global_assignment -name QIP_FILE              gridbrawl_qsys/synthesis/gridbrawl_qsys.qip
+# Add the PLL after generating it from IP catalog:
+# set_global_assignment -name QIP_FILE              gridbrawl_pll/gridbrawl_pll.qip
+
+# ---- 50 MHz clock ----------------------------------------------------------
+set_location_assignment PIN_AF14 -to CLOCK_50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CLOCK_50
+
+# ---- KEY[0] = global reset push-button (active low) ------------------------
+set_location_assignment PIN_AA14 -to KEY[0]
+set_location_assignment PIN_AA15 -to KEY[1]
+set_location_assignment PIN_W15  -to KEY[2]
+set_location_assignment PIN_Y16  -to KEY[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to KEY[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to KEY[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to KEY[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to KEY[3]
+
+# ---- VGA -------------------------------------------------------------------
+set_location_assignment PIN_A11  -to VGA_CLK
+set_location_assignment PIN_B12  -to VGA_HS
+set_location_assignment PIN_C10  -to VGA_VS
+set_location_assignment PIN_F11  -to VGA_BLANK_N
+set_location_assignment PIN_C10  -to VGA_SYNC_N
+# Per the DE1-SoC manual, VGA_BLANK_N=PIN_F11, VGA_SYNC_N=PIN_C10 are correct;
+# VGA_VS shares no pad with VGA_SYNC_N -- override the line above with the
+# real number from your User Manual revision if Quartus complains.
+
+set_location_assignment PIN_A13  -to VGA_R[0]
+set_location_assignment PIN_C13  -to VGA_R[1]
+set_location_assignment PIN_E13  -to VGA_R[2]
+set_location_assignment PIN_B14  -to VGA_R[3]
+set_location_assignment PIN_D14  -to VGA_R[4]
+set_location_assignment PIN_F14  -to VGA_R[5]
+set_location_assignment PIN_A15  -to VGA_R[6]
+set_location_assignment PIN_C15  -to VGA_R[7]
+
+set_location_assignment PIN_E15  -to VGA_G[0]
+set_location_assignment PIN_F15  -to VGA_G[1]
+set_location_assignment PIN_G15  -to VGA_G[2]
+set_location_assignment PIN_J14  -to VGA_G[3]
+set_location_assignment PIN_H14  -to VGA_G[4]
+set_location_assignment PIN_F13  -to VGA_G[5]
+set_location_assignment PIN_G13  -to VGA_G[6]
+set_location_assignment PIN_J13  -to VGA_G[7]
+
+set_location_assignment PIN_J9   -to VGA_B[0]
+set_location_assignment PIN_J10  -to VGA_B[1]
+set_location_assignment PIN_H12  -to VGA_B[2]
+set_location_assignment PIN_F12  -to VGA_B[3]
+set_location_assignment PIN_E11  -to VGA_B[4]
+set_location_assignment PIN_E12  -to VGA_B[5]
+set_location_assignment PIN_D12  -to VGA_B[6]
+set_location_assignment PIN_B13  -to VGA_B[7]
+
+foreach pin [list VGA_CLK VGA_HS VGA_VS VGA_BLANK_N VGA_SYNC_N \
+                  VGA_R[0] VGA_R[1] VGA_R[2] VGA_R[3] VGA_R[4] VGA_R[5] VGA_R[6] VGA_R[7] \
+                  VGA_G[0] VGA_G[1] VGA_G[2] VGA_G[3] VGA_G[4] VGA_G[5] VGA_G[6] VGA_G[7] \
+                  VGA_B[0] VGA_B[1] VGA_B[2] VGA_B[3] VGA_B[4] VGA_B[5] VGA_B[6] VGA_B[7]] {
+    set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to $pin
+}
+
+# ---- WM8731 audio codec (I2S TX + I2C control) -----------------------------
+set_location_assignment PIN_AC27 -to AUD_BCLK
+set_location_assignment PIN_AG30 -to AUD_DACLRCK
+set_location_assignment PIN_AC28 -to AUD_DACDAT
+set_location_assignment PIN_AG28 -to AUD_XCK
+set_location_assignment PIN_AH30 -to FPGA_I2C_SDAT
+set_location_assignment PIN_AF30 -to FPGA_I2C_SCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to AUD_BCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to AUD_DACLRCK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to AUD_DACDAT
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to AUD_XCK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to FPGA_I2C_SDAT
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to FPGA_I2C_SCLK
+
+# ---- HPS pins (DDR3 + USB) -------------------------------------------------
+# These are 100+ assignments. Take them verbatim from the Terasic golden
+# top file (e.g. DE1_SoC_GHRD/DE1_SoC_GHRD.qsf). The wrapper above already
+# uses the standard signal names.

@@ -1,0 +1,48 @@
+/*
+ * gridbrawl_devicetree.dts -- device-tree fragment for GridBrawl FPGA
+ * peripherals on the DE1-SoC Cyclone V HPS-to-FPGA lightweight bridge.
+ *
+ * Drop these nodes into your board DTS under the lightweight bridge
+ * (typically /soc/bridge@ff200000 or labelled `lwhps2fpga`). Then
+ * rebuild your dtb:
+ *
+ *   dtc -O dtb -I dts -o socfpga_cyclone5_de1_soc.dtb \
+ *       socfpga_cyclone5_de1_soc.dts
+ *
+ * The kernel modules in kernel_modules/audio/ and kernel_modules/video/
+ * currently iomap by hard-coded address (FPGA_AUDIO_BASE,
+ * FPGA_VIDEO_TILE_BASE, FPGA_VIDEO_SPRITE_BASE), so a matching DT node
+ * is not strictly required. Including them anyway keeps `cat
+ * /proc/device-tree/...` discoverable, and lets a later rev of the
+ * driver call platform_get_resource() instead.
+ */
+
+/ {
+    soc {
+        bridge@ff200000 {
+            compatible = "altr,bridge-15.1", "simple-bus";
+            reg = <0xff200000 0x00200000>;
+            ranges = <0x00000000 0xff200000 0x00200000>;
+            #address-cells = <1>;
+            #size-cells    = <1>;
+
+            fpga_audio: gridbrawl-audio@2000 {
+                compatible = "gridbrawl,fpga-audio-1.0";
+                reg = <0x00002000 0x00000010>;
+                status = "okay";
+            };
+
+            fpga_video_tile: gridbrawl-video-tile@3000 {
+                compatible = "gridbrawl,fpga-video-tile-1.0";
+                reg = <0x00003000 0x00000200>;
+                status = "okay";
+            };
+
+            fpga_video_sprite: gridbrawl-video-sprite@4000 {
+                compatible = "gridbrawl,fpga-video-sprite-1.0";
+                reg = <0x00004000 0x00000080>;
+                status = "okay";
+            };
+        };
+    };
+};

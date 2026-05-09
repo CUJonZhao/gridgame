@@ -1,6 +1,7 @@
 audio_test
 usb_test
 game_logic_test
+render_test
 gridbrawl
 *.o
 *.out
