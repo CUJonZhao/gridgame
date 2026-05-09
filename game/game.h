@@ -16,7 +16,17 @@
 #define SPRITE_REGISTER_COUNT 30
 #define SPRITE_ID_COUNT 30
 #define TILE_ID_COUNT 6
-#define WIN_SCORE 100
+#define WIN_SCORE 80
+
+#define GAME_TICK_HZ 32
+#define PLAYER_SPEED 2
+#define BOMB_TIMER_TICKS 160
+#define EXPLOSION_TIMER_TICKS 32
+
+#define UI_ROW_START 1
+#define UI_ROW_END 2
+#define UI_COL_START 6
+#define UI_COL_END 13
 
 typedef enum {
     TILE_EMPTY = 0,
@@ -31,7 +41,8 @@ typedef enum {
     DIR_UP = 0,
     DIR_DOWN = 1,
     DIR_LEFT = 2,
-    DIR_RIGHT = 3
+    DIR_RIGHT = 3,
+    DIR_NONE = 4
 } direction_t;
 
 typedef enum {
@@ -76,6 +87,10 @@ typedef enum {
 } sound_id_t;
 
 typedef struct {
+    sound_id_t sound_id;
+} audio_t;
+
+typedef struct {
     uint8_t up;
     uint8_t down;
     uint8_t left;
@@ -111,8 +126,16 @@ typedef struct {
     uint8_t alive;
     uint8_t row;
     uint8_t col;
+    uint16_t x;
+    uint16_t y;
+    uint8_t target_row;
+    uint8_t target_col;
+    uint16_t target_x;
+    uint16_t target_y;
+    uint8_t moving;
     uint16_t score;
     direction_t dir;
+    direction_t pending_dir;
 } player_t;
 
 typedef struct {
@@ -120,7 +143,8 @@ typedef struct {
     player_t players[PLAYER_COUNT];
     bomb_t bombs[ACTIVE_BOMB_COUNT];
     explosion_t explosions[ACTIVE_EXPLOSION_COUNT];
-    sound_id_t pending_sound;
+    sound_id_t pending_sound_1;
+    sound_id_t pending_sound_2;
     uint8_t game_over;
     int8_t winner;
 } game_state_t;
@@ -139,16 +163,8 @@ typedef struct {
     uint8_t enable;
 } sprite_t;
 
-typedef struct {
-    sound_id_t sound_id;
-} audio_t;
-
 void game_init(game_state_t *game);
 void game_reset(game_state_t *game);
 void game_step(game_state_t *game, const controller_state_t inputs[PLAYER_COUNT]);
-
-void write_tile(tile_t tile);
-void write_sprite(sprite_t sprite);
-void play_sound(audio_t audio);
 
 #endif
